@@ -1,9 +1,12 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#FAF8F5" />
+<!-- 版本号与更新地址：构建时由 tools/pack.mjs 依据 version.json 注入 -->
+<meta name="app-version" content="1.1.0" />
+<meta name="update-base" content="https://chipssea.github.io/shutiao-translate/" />
 <meta name="description" content="薯条翻译 · 一眼看懂每个词在当前语境里的意思" />
 <title>薯条翻译</title>
 
@@ -59,9 +62,29 @@
   <script src="app.js"></script>
   <script>
     // 注册 Service Worker（离线可用、可安装）；file:// 下静默跳过
+    // 更新策略：静默自动 —— 新版本下载好后自动接管，页面自己刷一次，不打扰用户
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+      let hadController = !!navigator.serviceWorker.controller;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!hadController) { hadController = true; return; }   // 首次安装不算更新
+        if (window.__updatingReload) return;
+        window.__updatingReload = true;
+        location.reload();
+      });
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').catch(() => {});
+        navigator.serviceWorker.register('sw.js').then((reg) => {
+          reg.addEventListener('updatefound', () => {
+            const sw = reg.installing;
+            if (!sw) return;
+            sw.addEventListener('statechange', () => {
+              if (sw.state === 'installed' && navigator.serviceWorker.controller) sw.postMessage({ type: 'SKIP_WAITING' });
+            });
+          });
+          // 每次回到前台顺手检查一次新版本
+          document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') reg.update().catch(() => {});
+          });
+        }).catch(() => {});
       });
     }
   </script>

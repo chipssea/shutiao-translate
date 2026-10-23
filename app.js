@@ -27,8 +27,50 @@
     tab: 'learn', seg: 'daily', idx: 0, sb: 0,
     blind: false, auto: true, remind: true,
     chunk: {}, zh: {}, uses: {}, seen: {}, seenVerse: {},
-    q: '', hist: [], art: null, lib: 'all'
+    q: '', hist: [], art: null, lib: 'all', update: null
   };
+
+  /* ---------------- 版本与更新（静默检查，永不弹窗） ---------------- */
+  const META = (name, def) => {
+    const el = document.querySelector('meta[name="' + name + '"]');
+    return el && el.content ? el.content : def;
+  };
+  const APP_VERSION = META('app-version', 'dev');
+  const UPDATE_BASE = META('update-base', '');
+  // 是否运行在壳里（Capacitor APK）；网页 / PWA 用"刷新"更新
+  const IS_NATIVE = typeof window !== 'undefined' &&
+    (!!window.Capacitor || /(Capacitor|;\s*wv\))/i.test(navigator.userAgent));
+
+  const verParts = (v) => String(v).replace(/^v/i, '').split('.').map((x) => parseInt(x, 10) || 0);
+  function verGt(a, b) {
+    const A = verParts(a), B = verParts(b);
+    for (let i = 0; i < Math.max(A.length, B.length); i++) {
+      const x = A[i] || 0, y = B[i] || 0;
+      if (x > y) return true;
+      if (x < y) return false;
+    }
+    return false;
+  }
+
+  /* 静默检查：离线 / 超时 / 被墙都不打扰用户，只有真发现新版本才记进状态 */
+  async function checkUpdate() {
+    if (!UPDATE_BASE || !navigator.onLine) return;
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 6000);
+      const res = await fetch(UPDATE_BASE + 'version.json?t=' + Date.now(), {
+        cache: 'no-store',
+        signal: ctrl.signal
+      });
+      clearTimeout(timer);
+      if (!res.ok) return;
+      const info = await res.json();
+      if (info && info.version && verGt(info.version, APP_VERSION)) {
+        S.update = info;
+        if (S.tab === 'me') render(true);
+      }
+    } catch (e) { /* 静默失败 */ }
+  }
 
   /* ---------------- 存储 ---------------- */
   function load() {
@@ -689,6 +731,12 @@
   /* ---------------- 我的（精简：头像 + 一个数据 + 重置） ---------------- */
   function viewMe() {
     const touched = Object.keys(S.uses).length;
+    const up = S.update;
+    const action = !up
+      ? '<span class="row-ok">已是最新</span>'
+      : (IS_NATIVE
+        ? `<a class="row-act" href="${esc(up.apk || up.page || '#')}" target="_blank" rel="noopener">v${esc(up.version)} 可更新 ›</a>`
+        : `<button class="row-act" data-act="reloadApp">v${esc(up.version)} · 刷新 ›</button>`);
 
     return `<button class="back-link" data-act="go" data-tab="learn">${ICON.left}返回</button>
       <div class="me-head">
@@ -700,6 +748,16 @@
       </div>
       <div class="stats one">
         <div class="stat"><div class="v">${touched}<i>次</i></div><div class="k">语境词义接触</div></div>
+      </div>
+      <div class="sect-label">关于</div>
+      <div class="rows">
+        <div class="row">
+          <span class="rk"><b>版本</b><span>v${esc(APP_VERSION)}${up ? '' : ' · ' + (IS_NATIVE ? 'App' : '网页版')}</span></span>
+          ${action}
+        </div>
+        ${up && up.notes && up.notes.length ? `<div class="row">
+          <span class="rk"><b>更新内容</b><span>${up.notes.map((n) => esc(n)).join('；')}</span></span>
+        </div>` : ''}
       </div>
       <button class="ghost-btn" data-act="reset">重置演示数据</button>`;
   }
@@ -1099,6 +1157,10 @@
         render(false);
         showToast('演示数据已重置');
         break;
+
+      case 'reloadApp':
+        location.reload();
+        break;
     }
   }
 
@@ -1161,6 +1223,9 @@
       render(false);
     }
     if (p.get('blind') !== null) { S.blind = true; render(false); }
+
+    // 静默检查更新：不阻塞首屏、不弹窗，失败就算了
+    setTimeout(checkUpdate, 1200);
   }
 
   let booted = false;

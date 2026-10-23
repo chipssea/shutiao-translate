@@ -1,0 +1,12 @@
+{
+  "version": "1.1.0",
+  "build": "20261019",
+  "releasedAt": "2026-10-19",
+  "notes": [
+    "新增：应用内更新检查（设置页可见当前版本与最新版本）",
+    "优化：每日一句字号随屏幕宽度收敛，不再臃肿",
+    "修复：顶栏被手机状态栏遮挡"
+  ],
+  "apk": "https://github.com/chipssea/shutiao-translate/releases/latest/download/shutiao.apk",
+  "page": "https://chipssea.github.io/shutiao-translate/"
+}

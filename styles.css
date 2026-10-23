@@ -1,6 +1,6 @@
-﻿/* ============================================================
-   Gloss 璇嶄笅 鈥?Design tokens & layout
-   涓昏壊 闆鹃溇钃?#6B8E9F / 杈?鐏扮豢 #7A9B8E / 搴?鏆栫櫧 #FAF8F5
+/* ============================================================
+   chips / 薯条翻译 · Design tokens & layout
+   主色 雾霾蓝 #6B8E9F / 辅色 灰绿 #7A9B8E / 底色 暖白 #FAF8F5
    ============================================================ */
 :root{
   --bg:#FAF8F5;
@@ -62,7 +62,7 @@ svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.6;stroke
   .stage-note{display:none}
 }
 
-/* ---------- 鐪熸満鍏ㄥ睆锛圥WA / WebView锛夛細鍒樻捣涓庡畨鍏ㄥ尯 ---------- */
+/* ---------- 真机全屏（PWA / WebView）：刘海与安全区 ---------- */
 @media (display-mode:standalone), (display-mode:fullscreen), (display-mode:minimal-ui){
   .phone{width:100vw;height:100vh;height:100dvh;max-height:100dvh;border-radius:0;box-shadow:none;background:var(--bg)}
   body{background:var(--bg)}
@@ -161,12 +161,12 @@ svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.6;stroke
 .word.in-phrase.flash .en{animation:phflash 1.1s ease}
 @keyframes phflash{0%,100%{border-bottom-color:var(--primary-18)}30%{border-bottom-color:var(--primary)}}
 
-/* 鎺屾彙杩涘害鍦嗙偣 */
+/* 掌握进度圆点 */
 .dots{display:inline-flex;gap:2px;transform:translateY(-1px)}
 .dots i{width:3px;height:3px;border-radius:50%;background:var(--primary);opacity:.22;transition:opacity .3s ease}
 .dots i.on{opacity:.85}
 
-/* 閲婁箟鍗囩骇涓夋€?*/
+/* 释义升级三态 */
 .word .gloss[data-lv="1"]{color:var(--primary);opacity:.9;letter-spacing:.01em;font-family:var(--en);font-size:10.5px}
 .word .gloss[data-lv="2"]{opacity:0}
 
@@ -174,7 +174,7 @@ svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.6;stroke
 .phone.blind .word .gloss{opacity:0}
 .phone.blind .word .gloss.peek{opacity:1}
 
-/* 鎰忕兢妯″紡锛堟案涔呭紑鍚殑姣忔棩涓€鍙ワ級锛氭寜璇潡鍒嗙粍锛屽潡鍐呭崟璇嶄粛鏄彲鐐规寜閽?*/
+/* 意群模式（永久开启的每日一句）：按语块分组，块内单词仍是可点按钮 */
 .line.is-chunked{column-gap:16px;row-gap:20px;align-items:flex-start}
 .line.is-chunked .chunk{
   display:inline-flex;flex-wrap:wrap;max-width:100%;
@@ -186,7 +186,7 @@ svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.6;stroke
   font-size:25px;line-height:1.22;font-weight:500;color:var(--ink);letter-spacing:-.015em;
   white-space:nowrap;transform:translateY(-1px);
 }
-/* 鐩茬偣妯″紡锛堟案涔呭紑鍚級锛氫腑鏂囨敞涓嶅崰浣嶏紝鍙暀鑻辨枃 */
+/* 盲点模式（永久开启）：中文注不占位，只留英文 */
 .sentence.is-blind .word .gloss{display:none}
 
 /* ---------------- learn layout ---------------- */
@@ -242,7 +242,7 @@ svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.6;stroke
   transition:max-height .3s ease,opacity .3s ease,margin .3s ease;
 }
 .zh-line.show{max-height:60px;opacity:1;margin-top:6px}
-/* 姣忔棩涓€鍙ワ細缈昏瘧鐩存帴钀藉湪鍘?鏈彞澶氫箟璇?鐨勪綅缃?*/
+/* 每日一句：翻译直接落在原「本句多义词」的位置 */
 .card .zh-line.show{
   border-top:1px solid var(--hair);
   margin-top:16px;padding-top:13px;
@@ -299,7 +299,7 @@ svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.6;stroke
 .lib-row .lm{flex:0 0 auto;font-family:var(--han);font-size:10.5px;color:#C2C6C5}
 .lib-row.lv1 .lg{color:var(--primary);opacity:.9}
 .lib-row.lv2 .lg{opacity:.35}
-/* 鏌ヨ鍘嗗彶琛岋細闀挎煡璇㈢渷鐣ヨ€屼笉鏄崲琛?*/
+/* 查询历史行：长查询省略而不是换行 */
 .lib-row.hist .lw{
   flex:1 1 auto;min-width:0;font-size:15px;font-weight:500;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
@@ -443,6 +443,16 @@ svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.6;stroke
 .row .rk{flex:1 1 auto}
 .row .rk b{display:block;font-family:var(--han);font-size:13px;font-weight:400}
 .row .rk span{display:block;font-family:var(--han);font-size:10.5px;color:var(--muted);margin-top:3px;letter-spacing:.02em}
+/* 版本行：已是最新 / 有新版本可更新 */
+.row-ok{flex:0 0 auto;font-family:var(--han);font-size:10.5px;color:#B4B8B8;letter-spacing:.02em}
+.row-act{
+  flex:0 0 auto;font-family:var(--han);font-size:11.5px;
+  color:var(--primary-d);background:var(--primary-10);
+  padding:6px 11px;border-radius:20px;letter-spacing:.02em;
+  white-space:nowrap;text-decoration:none;
+  transition:transform .16s var(--spring),background .2s ease;
+}
+.row-act:active{transform:scale(.95);background:var(--primary-18)}
 .sw{
   flex:0 0 auto;width:40px;height:23px;border-radius:12px;background:#E2E1DD;position:relative;
   transition:background .24s ease;
