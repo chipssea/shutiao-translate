@@ -38,7 +38,12 @@
         </div>
       </header>
 
-      <main class="view" id="view"></main>
+      <main class="view" id="view">
+        <div class="boot" id="boot">
+          <span class="boot-dot"></span>
+          <span>载入词库…</span>
+        </div>
+      </main>
 
       <div class="scrim" id="scrim"></div>
       <section class="sheet" id="sheet" role="dialog" aria-modal="true"></section>
@@ -55,13 +60,13 @@
     <p class="stage-note">薯条翻译 · 语境直觉英语 · 高保真原型</p>
   </div>
 
-  <script src="lexicon.js"></script>
-  <script src="examples.js"></script>
-  <script src="corpus.js"></script>
-  <script src="roots.js"></script>
-  <script src="phonetics.js"></script>
-  <script src="data.js"></script>
-  <script src="app.js"></script>
+  <script defer src="lexicon.js"></script>
+  <script defer src="examples.js"></script>
+  <script defer src="corpus.js"></script>
+  <script defer src="roots.js"></script>
+  <script defer src="phonetics.js"></script>
+  <script defer src="data.js"></script>
+  <script defer src="app.js"></script>
   <script>
     // 注册 Service Worker（离线可用、可安装）；file:// 下静默跳过
     // 更新策略：静默自动 —— 新版本下载好后自动接管，页面自己刷一次，不打扰用户
