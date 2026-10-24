@@ -19,9 +19,67 @@
     user: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.4"/><path d="M5 20c0-3.6 3.1-5.6 7-5.6s7 2 7 5.6"/></svg>',
     x: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>',
     mic: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="10" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>',
+    speaker: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3L11.5 6v12L7 14.5H4z"/><path d="M15 9.2a4.4 4.4 0 0 1 0 5.6"/></svg>',
     left: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14.5 5-7 7 7 7"/></svg>',
     right: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 5 7 7-7 7"/></svg>'
   };
+
+  /* ---------------- 音标 / 朗读 / 词根 ---------------- */
+  function phonOf(k, w) {
+    const curated = w && w.phon ? String(w.phon).replace(/^\/|\/$/g, '') : '';
+    if (curated) return curated;
+    if (typeof PHONETICS !== 'undefined') {
+      const key = (w && w.lemma ? w.lemma : k || '').toLowerCase();
+      const p = PHONETICS[k] || PHONETICS[key] || '';
+      if (p) return p;
+    }
+    return '';
+  }
+
+  // 词根：长变体优先（station → stat 而不是 sta）
+  function rootInfo(word) {
+    if (typeof ROOTS === 'undefined' || !word) return null;
+    const w = String(word).toLowerCase().replace(/[^a-z'-]/g, '');
+    if (!w) return null;
+    let id = ROOTS.words[w];
+    if (!id) {
+      const cands = [w.replace(/s$/, ''), w.replace(/es$/, ''), w.replace(/ed$/, ''), w.replace(/ing$/, ''), w.replace(/e$/, '')];
+      for (const c of cands) { if (ROOTS.words[c]) { id = ROOTS.words[c]; break; } }
+    }
+    if (!id) return null;
+    const [variants, meaning, kind] = ROOTS.roots[id];
+    const hits = variants.filter((v) => v.length > 1 && w.indexOf(v) >= 0).sort((a, b) => b.length - a.length);
+    const hit = hits[0] || variants[0];
+    const show = kind === '后缀' ? '-' + hit : kind === '前缀' ? hit + '-' : hit;
+    return { root: show, meaning, kind };
+  }
+
+  function rootLine(word) {
+    const r = rootInfo(word);
+    if (!r) return '';
+    return `<div class="root-line"><span class="root-kind">${r.kind}</span><b>${esc(r.root)}</b><span class="root-mean">${esc(r.meaning)}</span></div>`;
+  }
+
+  function say(text) {
+    try {
+      if (!('speechSynthesis' in window) || !text) return;
+      const u = new SpeechSynthesisUtterance(String(text).replace(/[^A-Za-z' -]/g, ''));
+      u.lang = 'en-US';
+      u.rate = 0.9;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(u);
+    } catch (e) { /* 设备没有 TTS 就静默 */ }
+  }
+  const canSay = typeof window !== 'undefined' && 'speechSynthesis' in window;
+
+  /* 音标 + 朗读按钮（放不下音标时至少还有朗读） */
+  function phonLine(k, w) {
+    const p = phonOf(k, w);
+    const word = (w && w.lemma) || k || '';
+    const btn = canSay ? `<button class="say" data-act="say" data-w="${esc(word)}" aria-label="朗读">${ICON.speaker}</button>` : '';
+    if (!p) return btn ? `<div class="phon-line">${btn}</div>` : '';
+    return `<div class="phon-line"><span class="phon">/${esc(p)}/</span>${btn}</div>`;
+  }
 
   const S = {
     tab: 'learn', seg: 'daily', idx: 0, sb: 0,
@@ -29,6 +87,10 @@
     chunk: {}, zh: {}, uses: {}, seen: {}, seenVerse: {},
     q: '', hist: [], art: null, lib: 'all', update: null
   };
+
+  /* 高中 3500 词表：内容尚未导入，先用空数组占位（zone3500.js 提供 ZONE3500 时自动生效） */
+  const ZONE_LIST = (typeof ZONE3500 !== 'undefined' && Array.isArray(ZONE3500)) ? ZONE3500 : [];
+  const ZONE_READY = ZONE_LIST.length > 0;
 
   /* ---------------- 版本与更新（静默检查，永不弹窗） ---------------- */
   const META = (name, def) => {
@@ -360,6 +422,7 @@
   function viewLearn() {
     const box = `<div class="sbox-wrap">${searchBoxHTML(false)}</div>`;
     if (S.seg === 'hist') return box + backLink() + viewHistory();
+    if (S.seg === 'zone') return box + viewZone();
     if (S.seg === 'art') return box + (S.art === null ? backLink() + viewArtList() : viewArticle(S.art));
     return box + viewDaily();
   }
@@ -413,7 +476,42 @@
         <button class="entry-card" data-act="seg" data-seg="art">
           <b>共产党宣言</b><span>${MANIFESTO.length} 节 · ${MANIFESTO.reduce((a, u) => a + u.blocks.length, 0)} 段</span>
         </button>
+        <button class="entry-card wide" data-act="seg" data-seg="zone">
+          <b>高中 3500</b><span>3500 个核心词 · 音标 · 朗读 · 词根${ZONE_READY ? '' : ' · 内容准备中'}</span>
+        </button>
       </div>`;
+  }
+
+  /* ---------------- 高中 3500 专区（先留位置与样式，内容待导入） ---------------- */
+  function viewZone() {
+    const ready = ZONE_READY;
+    const list = ZONE_LIST;
+
+    const row = (w) => {
+      const info = wordData(w);
+      const zh = info && info.senses.length ? info.senses[0].zh : '';
+      const phon = info ? phonOf(w, info) : '';
+      const r = rootInfo(w);
+      return `<button class="lib-row" data-act="word" data-k="${esc(w)}" data-s="${info ? info.senses[0].id : ''}" data-sid="">
+          <span class="lw">${esc(w)}</span>
+          <span class="lg">${phon ? '/' + esc(phon) + '/' : ''}${zh ? ' · ' + esc(zh) : ''}${r ? ' · ' + esc(r.root) : ''}</span>
+          <span class="lm">${canSay ? `<span class="say sm" data-act="say" data-w="${esc(w)}" role="button" aria-label="朗读">${ICON.speaker}</span>` : ''}</span>
+        </button>`;
+    };
+
+    return `<button class="back-link" data-act="seg" data-seg="daily">${ICON.left}返回</button>
+      <div class="sect-head"><h3>高中 3500</h3><span>${ready ? list.length + ' 词' : '内容准备中'}</span></div>
+      <div class="mf-sub">3500 个高中核心词 · 每个词给音标、朗读、词根与当前义项</div>
+      ${ready
+        ? list.map(row).join('')
+        : `<div class="empty"><b>词表还没导入</b>位置和样式先留好了：每个词一行<br>音标 + 一键朗读 + 词根提示，点词进义项卡</div>
+           <div class="sect-label">样式示例 <em>非真实词条</em></div>
+           <div class="rows">
+             <div class="row">
+               <span class="rk"><b>example</b><span>/ɪɡˈzɑːmpl/ · 例子 · exam-</span></span>
+               <span class="row-ok">${canSay ? '可朗读' : '—'}</span>
+             </div>
+           </div>`}`;
   }
 
   /* ---------------- 查询历史 ---------------- */
@@ -693,11 +791,14 @@
     const me = lexResolve(k) || k;
     const related = Object.keys(PHRASES).filter((p) => p.split(' ').some((t) => (lexResolve(t) || t) === me));
     const cards = w.senses.map((s) => senseCardHTML(w, s, { act: 'openSense', k, current: s.id === best.id })).join('');
-    const lemmaNote = low !== w.lemma.toLowerCase() ? (w.phon || w.pos || '') + ' · 原形 ' + w.lemma : (w.phon || w.pos || '');
+    const lemmaNote = low !== w.lemma.toLowerCase() ? (w.pos || '') + '' : (w.pos || '');
+    const lemmaLine = low !== w.lemma.toLowerCase() ? ` · 原形 ${esc(w.lemma)}` : '';
 
     return `<div class="res-main">
-        <div class="res-word">${esc(low)}<small>${esc(lemmaNote)}</small></div>
+        <div class="res-word">${esc(low)}<small>${esc(lemmaNote)}${lemmaLine}</small></div>
+        ${phonLine(k, w)}
         <div class="res-top">${esc(best.zh)}<span class="tag">最匹配义项</span></div>
+        ${rootLine(w.lemma || k)}
         ${tagsHTML(w)}
       </div>
       <div class="lang-hint"><i class="rec"></i>识别为英文 → 中文，只给当前最可能义项</div>
@@ -871,8 +972,9 @@
 
     const html = `<div class="sheet-head">
         <div>
-          <div class="sh-word">${esc(surface)}<span class="phon">${esc(w.phon || '')}</span></div>
+          <div class="sh-word">${esc(surface)}<span class="phon">${esc(phonOf(sheetCtx.k, w))}</span>${canSay ? `<button class="say sm" data-act="say" data-w="${esc(w.lemma || sheetCtx.k)}" aria-label="朗读">${ICON.speaker}</button>` : ''}</div>
           <div class="sh-sub">${surface.toLowerCase() !== w.lemma.toLowerCase() ? esc(w.lemma) + ' · ' : ''}${esc(posLabel(w, sense))} · 共 ${w.senses.length} 个义项</div>
+          ${rootLine(w.lemma || sheetCtx.k)}
           ${tagsHTML(w)}
         </div>
         <button class="sh-close" data-act="closeSheet" aria-label="关闭">${ICON.x}</button>
@@ -1156,6 +1258,10 @@
         S.idx = 0; S.sb = 0; S.seg = 'daily'; S.art = null; S.chunk = {}; S.zh = {};
         render(false);
         showToast('演示数据已重置');
+        break;
+
+      case 'say':
+        say(el.dataset.w);
         break;
 
       case 'reloadApp':

@@ -1,11 +1,12 @@
 {
-  "version": "1.1.0",
-  "build": "20261019",
-  "releasedAt": "2026-10-19",
+  "version": "1.2.0",
+  "build": "20261023",
+  "releasedAt": "2026-10-23",
   "notes": [
-    "新增：应用内更新检查（设置页可见当前版本与最新版本）",
-    "优化：每日一句字号随屏幕宽度收敛，不再臃肿",
-    "修复：顶栏被手机状态栏遮挡"
+    "新增：搜索词显示音标，可一键朗读（浏览器 TTS）",
+    "新增：单词下方标注词根 / 前缀 / 后缀（小字，不抢翻译主体）",
+    "新增：底部「高中 3500」专区入口（词表待导入）",
+    "优化：义项卡片更紧凑简约（242→204）"
   ],
   "apk": "https://github.com/chipssea/shutiao-translate/releases/latest/download/shutiao.apk",
   "page": "https://chipssea.github.io/shutiao-translate/"
